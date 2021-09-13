@@ -1,0 +1,359 @@
+@import url("https://webglfundamentals.org/webgl/resources/webgl-tutorials.css");
+body {
+	background-color: #262525;
+	color: #c4c4c4;
+	font-family: 'Pangolin', cursive;
+	// font-family: monospace;
+	//font-family: Trebuchet, Arial, sans-serif; 
+}
+
+a:link {
+	text-decoration: none;
+}
+
+header {
+	text-align: center;
+}
+
+main {
+	display: block;
+	margin: auto;
+	height: 780px;
+	width: 1620px;
+}
+
+.panel {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.panelobjects ul,
+li {
+	list-style: none;
+	margin: 0;
+	//padding: auto;
+}
+
+.panelobjects li {
+	//display: block;
+	margin:10px ;
+}
+
+.panelobjectsobject {
+	border: none;
+	color: darkgrey;
+	height: 30px;
+	font-size: 30px;
+	cursor: pointer;
+}
+
+.panelobjects .object:hover {
+	color: #d9d9d9;
+}
+
+.panelcontrol {
+	text-align: left;
+	margin: auto;
+	font-size: 20px;
+}
+
+.panelgroup {
+	display: block;
+	margin: 20px 20px;
+	max-width: 400px;
+}
+
+.canvas {
+	display: block;
+	border: thin solid gray;
+	background-color: #fff;
+	border-radius: 5px;
+}
+
+.button {
+	font-family: 'Pangolin', cursive;
+	background-color: #34A7C1;
+	border: none;
+	color: white;
+	padding:2px;
+	text-align: center;
+	text-decoration: none;
+	//display: inline-block;
+	font-size: 16px;
+	cursor: pointer;
+	
+}
+
+.btn1 {
+	border-radius: 4px;
+	//box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+	border: 2px solid #999999;
+	width: 70px;
+	margin:5px 10px;
+	
+}
+
+.btn2 {
+	border-radius: 4px;
+	//box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+	border: 2px solid #999999;
+	width: 120px;
+	margin:5px 5px;
+	
+}
+
+.header {
+	padding: 20px;
+	text-align: center;
+	// background: #1abc9c;
+	color: white;
+}
+
+.topbar {
+	color: white;
+	padding: 14px 20px;
+}
+
+.button:hover {
+	background-color: #00CED1;
+}
+
+.onoffswitch {
+	position: relative;
+	width: 90px;
+
+}
+
+.onoffswitch-checkbox {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.onoffswitch-label {
+	display: block;
+	overflow: hidden;
+	cursor: pointer;
+	border: 2px solid #999999;
+	border-radius: 20px;
+}
+
+.onoffswitch-inner {
+	display: block;
+	width: 200%;
+	margin-left: -100%;
+	transition: margin 0.3s ease-in 0s;
+}
+
+.onoffswitch-inner:before,
+.onoffswitch-inner:after {
+	display: block;
+	float: left;
+	width: 50%;
+	height: 30px;
+	padding: 0;
+	line-height: 30px;
+	font-size: 16px;
+	color: white;
+	//font-weight: bold;
+	box-sizing: border-box;
+}
+
+.onoffswitch-inner:before {
+	content: "+ Axis";
+	padding-left: 10px;
+	background-color: #34A7C1;
+	color: #FFFFFF;
+}
+
+.onoffswitch-inner:after {
+	content: "- Axis";
+	padding-right: 10px;
+	background-color: #EEEEEE;
+	color: #999999;
+	text-align: right;
+}
+
+.onoffswitch-switch {
+	display: block;
+	width: 18px;
+	margin: 6px;
+	background: #FFFFFF;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: 56px;
+	border: 2px solid #999999;
+	border-radius: 20px;
+	transition: all 0.3s ease-in 0s;
+}
+
+.onoffswitch-checkbox:checked+.onoffswitch-label .onoffswitch-inner {
+	margin-left: 0;
+}
+
+.onoffswitch-checkbox:checked+.onoffswitch-label .onoffswitch-switch {
+	right: 0px;
+}
+
+.onoffswitch2 {
+	position: relative;
+	width: 100px;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+}
+
+.onoffswitch-checkbox2 {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.onoffswitch-label2 {
+	display: block;
+	overflow: hidden;
+	cursor: pointer;
+	border: 2px solid #999999;
+	border-radius: 20px;
+}
+
+.onoffswitch-inner2 {
+	display: block;
+	width: 200%;
+	margin-left: -100%;
+	transition: margin 0.3s ease-in 0s;
+}
+
+.onoffswitch-inner2:before,
+.onoffswitch-inner2:after {
+	display: block;
+	float: left;
+	width: 50%;
+	height: 30px;
+	padding: 0;
+	line-height: 30px;
+	font-size: 16px;
+	color: white;
+	//font-weight: bold;
+	box-sizing: border-box;
+}
+
+.onoffswitch-inner2:before {
+	content: "Gouraud";
+	padding-left: 10px;
+	background-color: #34A7C1;
+	color: #FFFFFF;
+}
+
+.onoffswitch-inner2:after {
+	content: "Flat";
+	padding-right: 10px;
+	background-color: #EEEEEE;
+	color: #999999;
+	text-align: right;
+}
+
+.onoffswitch-switch2 {
+	display: block;
+	width: 18px;
+	margin: 6px;
+	background: #FFFFFF;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: 56px;
+	border: 2px solid #999999;
+	border-radius: 20px;
+	transition: all 0.3s ease-in 0s;
+}
+
+.onoffswitch-checkbox2:checked+.onoffswitch-label2 .onoffswitch-inner2 {
+	margin-left: 0;
+}
+
+.onoffswitch-checkbox2:checked+.onoffswitch-label2 .onoffswitch-switch2 {
+	right: 0px;
+}
+
+.onoffswitch3 {
+	position: relative;
+	width: 100px;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+}
+
+.onoffswitch-checkbox3 {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.onoffswitch-label3 {
+	display: block;
+	overflow: hidden;
+	cursor: pointer;
+	border: 2px solid #999999;
+	border-radius: 20px;
+}
+
+.onoffswitch-inner3 {
+	display: block;
+	width: 200%;
+	margin-left: -100%;
+	transition: margin 0.3s ease-in 0s;
+}
+
+.onoffswitch-inner3:before,
+.onoffswitch-inner3:after {
+	display: block;
+	float: left;
+	width: 50%;
+	height: 30px;
+	padding: 0;
+	line-height: 30px;
+	font-size: 16px;
+	color: white;
+	//font-weight: bold;
+	box-sizing: border-box;
+}
+
+.onoffswitch-inner3:before {
+	content: "Off";
+	padding-left: 10px;
+	background-color:  #EEEEEE;
+	color: #999999;
+}
+
+.onoffswitch-inner3:after {
+	content: "On";
+	padding-right: 10px;
+	background-color:#34A7C1;
+	color: #FFFFFF;
+	text-align: right;
+}
+
+.onoffswitch-switch3 {
+	display: block;
+	width: 18px;
+	margin: 6px;
+	background: #FFFFFF;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: 56px;
+	border: 2px solid #999999;
+	border-radius: 20px;
+	transition: all 0.3s ease-in 0s;
+}
+
+.onoffswitch-checkbox3:checked+.onoffswitch-label3 .onoffswitch-inner3 {
+	margin-left: 0;
+}
+
+.onoffswitch-checkbox3:checked+.onoffswitch-label3 .onoffswitch-switch3 {
+	right: 0px;
+}

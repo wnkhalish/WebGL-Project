@@ -1,0 +1,569 @@
+<!doctype html>
+<html>
+   <head>
+      <title>WebGL-3D</title>
+      <link rel="stylesheet" href="../style.css">
+      <link href="https://fonts.googleapis.com/css?family=Pangolin" rel="stylesheet">
+      <script type="x-shader/x-vertex" id="vertex-shader">
+         precision mediump float;
+         attribute vec3 pos;
+         attribute vec3 normal;
+         varying vec3 col;
+         uniform mat4 projectionMatrix, viewMatrix, modelMatrix;
+         uniform mat3 normalMatrix; uniform vec3 ambientLightColour, directionalLight, materialSpecular; 
+         uniform float materialAmbient, materialDiffuse, shininess;
+         /* A function to determine the colour of a vertex, accounting for ambient and directional light */ 
+         vec3 ads( vec4 position, vec3 norm ) {
+         vec3 s = normalize(vec3(vec4(directionalLight,1.0) - position));
+         vec3 v = normalize(vec3(-position)); 
+         vec3 r = reflect(-s, norm); 
+         return ambientLightColour + materialDiffuse * max(dot(s,norm), 0.0) + materialSpecular * pow(max(dot(r,v), 0.0), shininess); 
+         }
+         void main() { 
+         vec3 eyeNormal = normalize(normalMatrix * normal); 
+         vec4 eyePosition = viewMatrix * modelMatrix * vec4(pos, 1.0); 
+         col = min(vec3(0.0) + ads(eyePosition, eyeNormal), 1.0); 
+         gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(pos, 1.0);
+         } 
+      </script>
+      <script type="x-shader/x-fragment" id="fragment-shader"> 
+         precision mediump float;
+         varying vec3 col;
+         void main() { 
+         gl_FragColor = vec4(col, 1.0);
+         } 
+      </script>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js" integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ==" crossorigin="anonymous" defer></script>
+      <script type="text/javascript" src="cube/initShaders.js"></script>
+      <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+      <script type="text/javascript" src="../Common/MV.js"></script>
+      <script type="text/javascript">
+         var canvas;
+         var gl;
+         var program;
+         
+         // Buttons
+         var flag = true;
+         var direction = true;
+         var perspec = false;
+         var shading = false;
+         
+         // Sliders
+         var sliderTX;
+         var sliderTY;
+         var sliderTZ;
+         var sliderScaleX;
+         var sliderScaleY;
+		 var sliderScaleZ;
+     
+         // Matrices
+         var modelViewMatrix;
+         var projectionMatrix;
+         
+         
+         // Orthogonal
+         var left = -1.0;
+         var right = 1.0;
+         var bottom = -1.0;
+         var ytop = 1.0;
+         
+         // Axis
+         var xAxis = 0;
+         var yAxis = 1;
+         var zAxis = 2;
+         var axis = xAxis;
+         
+         // Cube Angle
+         var theta = [45.0, 45.0, 45.0];
+         var rotationSpeed = 0.001;
+         var controlsRotate;
+       
+         //Camera
+         var eyeX;
+         var eyeY;
+         var eyeZ;
+         var ctrX;
+         var ctrY;
+         var ctrZ;
+         var upX;
+         var upY;
+         var upZ;
+         
+        function render(gl, scene, timestamp, previousTimestamp) {
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.useProgram(scene.program);
+         	
+        var delta = controlsRotate / (timestamp - previousTimestamp);
+        var light = vec3.fromValues(
+        ($('#light-x').val() - 50.0) / 10.0, ($('#light-y').val() - 50.0) / 10.0, ($('#light-z').val() - 50.0) / 10.0);
+		
+        gl.uniform3fv(scene.program.directionalLightUniform, light);
+        var rotateX = ($('#rotate-x').val() - 5) / 10;
+        var rotateY = ($('#rotate-y').val() - 5) / 10;
+        var rotateZ = ($('#rotate-z').val() - 5) / 10;
+         	
+        mat4.rotate(scene.object.modelMatrix, scene.object.modelMatrix, delta, [rotateX, rotateY, rotateZ])
+         
+		controlsRotate = parseFloat(document.getElementById("rotc").value).toFixed(2);
+        document.getElementById("ValueRot").innerHTML = controlsRotate;
+		sliderTX = parseFloat(document.getElementById("SliderTX").value).toFixed(1);
+        document.getElementById("ValueTX").innerHTML = sliderTX;
+        sliderTY = parseFloat(document.getElementById("SliderTY").value).toFixed(1);
+        document.getElementById("ValueTY").innerHTML = sliderTY;
+        sliderTZ = parseFloat(document.getElementById("SliderTZ").value).toFixed(1);
+        document.getElementById("ValueTZ").innerHTML = sliderTZ;
+         
+         
+         near = parseFloat(document.getElementById("SliderPN").value);
+         document.getElementById("ValuePN").innerHTML = near;
+         far = parseFloat(document.getElementById("SliderPF").value);
+         document.getElementById("ValuePF").innerHTML = far;
+         var fov ;
+		fov = parseFloat(document.getElementById("SliderFOV").value);
+         document.getElementById("ValueFOV").innerHTML = fov;
+		 
+		 sliderScaleX = parseFloat(document.getElementById("SliderScaleX").value);
+         document.getElementById("ValueScaleX").innerHTML = sliderScaleX;
+		 sliderScaleY = parseFloat(document.getElementById("SliderScaleY").value);
+         document.getElementById("ValueScaleY").innerHTML = sliderScaleY;
+	
+		 
+		 
+         eyeX = parseFloat(document.getElementById("eyeX").value).toFixed(1);
+         document.getElementById("ValueeyeX").innerHTML = eyeX;
+         eyeY = parseFloat(document.getElementById("eyeY").value).toFixed(1);
+         document.getElementById("ValueeyeY").innerHTML = eyeY;
+         eyeZ = parseFloat(document.getElementById("eyeZ").value).toFixed(1);
+         document.getElementById("ValueeyeZ").innerHTML = eyeZ;
+         
+         ctrX = parseFloat(document.getElementById("ctrX").value).toFixed(1);
+         document.getElementById("ValuectrX").innerHTML = ctrX;
+         ctrY = parseFloat(document.getElementById("ctrY").value).toFixed(1);
+         document.getElementById("ValuectrY").innerHTML = ctrY;
+         ctrZ = parseFloat(document.getElementById("ctrZ").value).toFixed(1);
+         document.getElementById("ValuectrZ").innerHTML = ctrZ;
+         
+         upX = parseFloat(document.getElementById("upX").value).toFixed(1);
+         document.getElementById("ValueupX").innerHTML = upX;
+         upY = parseFloat(document.getElementById("upY").value).toFixed(1);
+         document.getElementById("ValueupY").innerHTML = upY;
+         upZ = parseFloat(document.getElementById("upZ").value).toFixed(1);
+         document.getElementById("ValueupZ").innerHTML = upZ;
+         
+         var lookAtMatrix=mat4.create();
+         let eye=vec3.fromValues(0,0,1);
+         let center=vec3.fromValues(0,0,0);
+         let up=vec3.fromValues(0,1,0);
+         
+         mat4.lookAt(lookAtMatrix,eye,center,up);
+         program.lookAtMatrixUniform = gl.getUniformLocation(program, 'lookAtMatrix');
+         gl.uniformMatrix4fv(program.lookAtMatrixUniform, gl.FALSE, lookAtMatrix);
+         
+		 
+		 //Comment line 160 to see the monkey rotate
+		 mat4.lookAt(scene.object.modelMatrix, [eyeX,eyeY,eyeZ], [ctrX,ctrY,ctrZ], [upX,upY,upZ] );
+         	
+         var translation = vec3.create();
+         vec3.set (translation,sliderTX, sliderTY, sliderTZ);
+         mat4.translate (scene.object.modelMatrix, scene.object.modelMatrix, translation);
+         
+        
+		 mat3.scale(scene.object.modelMatrix, scene.object.modelMatrix, [sliderScaleX, sliderScaleY, sliderScaleY])
+         
+			// Perspective
+			var projectionMatrix = mat4.create();
+			var near;
+			var far;
+
+			
+			var aspect = 1.0;
+         	mat4.perspective(projectionMatrix,fov , aspect, near, far);
+         
+         	program.projectionMatrixUniform = gl.getUniformLocation(program, 'projectionMatrix');
+         	gl.uniformMatrix4fv(program.projectionMatrixUniform, gl.FALSE, projectionMatrix);
+         	
+         	gl.uniformMatrix4fv(scene.program.modelMatrixUniform, gl.FALSE, scene.object.modelMatrix);
+         	var normalMatrix = mat3.create();
+         	mat3.normalFromMat4(normalMatrix, mat4.multiply(mat4.create(), scene.object.modelMatrix, scene.viewMatrix));
+         	gl.uniformMatrix3fv(scene.program.normalMatrixUniform, gl.FALSE, normalMatrix);
+         	gl.bindBuffer(gl.ARRAY_BUFFER, scene.object.vertexBuffer);
+         	gl.drawArrays(gl.TRIANGLES, 0, scene.object.vertexCount);
+         	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+         	gl.useProgram(null);
+         	requestAnimationFrame(function(time) {
+         		render(gl, scene, time, timestamp);
+         	});
+         }
+         
+         function initShaders( gl, vertexShaderId, fragmentShaderId )
+         {
+         var vertShdr;
+         var fragShdr;
+         
+         var vertElem = document.getElementById( vertexShaderId );
+         if ( !vertElem ) { 
+         alert( "Unable to load vertex shader " + vertexShaderId );
+         return -1;
+         }
+         else {
+         vertShdr = gl.createShader( gl.VERTEX_SHADER );
+         gl.shaderSource( vertShdr, vertElem.text );
+         gl.compileShader( vertShdr );
+         if ( !gl.getShaderParameter(vertShdr, gl.COMPILE_STATUS) ) {
+            var msg = "Vertex shader failed to compile.  The error log is:"
+         + "<pre>" + gl.getShaderInfoLog( vertShdr ) + "</pre>";
+            alert( msg );
+            return -1;
+         }
+         }
+         
+         var fragElem = document.getElementById( fragmentShaderId );
+         if ( !fragElem ) { 
+         alert( "Unable to load vertex shader " + fragmentShaderId );
+         return -1;
+         }
+         else {
+         fragShdr = gl.createShader( gl.FRAGMENT_SHADER );
+         gl.shaderSource( fragShdr, fragElem.text );
+         gl.compileShader( fragShdr );
+         if ( !gl.getShaderParameter(fragShdr, gl.COMPILE_STATUS) ) {
+            var msg = "Fragment shader failed to compile.  The error log is:"
+         + "<pre>" + gl.getShaderInfoLog( fragShdr ) + "</pre>";
+            alert( msg );
+            return -1;
+         }
+         }
+         
+         var program = gl.createProgram();
+         gl.attachShader( program, vertShdr );
+         gl.attachShader( program, fragShdr );
+         gl.linkProgram( program );
+         
+         if ( !gl.getProgramParameter(program, gl.LINK_STATUS) ) {
+         var msg = "Shader program failed to link.  The error log is:"
+            + "<pre>" + gl.getProgramInfoLog( program ) + "</pre>";
+         alert( msg );
+         return -1;
+         }
+         
+         return program;
+         }
+         
+         function init(object) {
+         	var canvas = document.getElementById('gl-canvas');
+         	var gl = canvas.getContext('experimental-webgl');
+         	 gl = WebGLUtils.setupWebGL(canvas);
+         	if (!gl) {
+                alert("WebGL isn't available");
+         	}
+         	resizeCanvasToDisplaySize(gl.canvas);
+         	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+         	gl.enable(gl.DEPTH_TEST);
+         	gl.enable(gl.CULL_FACE);
+         	gl.cullFace(gl.BACK);
+         	gl.clearColor(0.0, 0.0, 0.0, 0.0);
+         	program = initShaders(gl, "vertex-shader", "fragment-shader");
+         	gl.useProgram(program);
+         
+        
+
+         	program.positionAttribute = gl.getAttribLocation(program, 'pos');
+         	gl.enableVertexAttribArray(program.positionAttribute);
+         	program.normalAttribute = gl.getAttribLocation(program, 'normal');
+         	gl.enableVertexAttribArray(program.normalAttribute);
+         	
+         	var vertexBuffer = gl.createBuffer();
+         	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+         	gl.bufferData(gl.ARRAY_BUFFER, object.vertices, gl.STATIC_DRAW);
+         	gl.vertexAttribPointer(program.positionAttribute, 3, gl.FLOAT, gl.FALSE, Float32Array.BYTES_PER_ELEMENT * 6, 0);
+         	gl.vertexAttribPointer(program.normalAttribute, 3, gl.FLOAT, gl.FALSE, Float32Array.BYTES_PER_ELEMENT * 6, Float32Array.BYTES_PER_ELEMENT * 3);
+         	
+         
+         	var viewMatrix = mat4.create();
+         	program.viewMatrixUniform = gl.getUniformLocation(program, 'viewMatrix');
+         	gl.uniformMatrix4fv(program.viewMatrixUniform, gl.FALSE, viewMatrix);
+         	
+         	var modelMatrix = mat4.create();
+         	mat4.identity(modelMatrix);
+         	mat4.translate(modelMatrix, modelMatrix, [0, 0, -4]);
+         	program.modelMatrixUniform = gl.getUniformLocation(program, 'modelMatrix');
+         	gl.uniformMatrix4fv(program.modelMatrixUniform, gl.FALSE, modelMatrix);
+         	
+         	var normalMatrix = mat3.create();
+         	mat3.normalFromMat4(normalMatrix, mat4.multiply(mat4.create(), modelMatrix, viewMatrix));
+         	program.normalMatrixUniform = gl.getUniformLocation(program, 'normalMatrix');
+         	gl.uniformMatrix3fv(program.normalMatrixUniform, gl.FALSE, normalMatrix);
+         	program.ambientLightColourUniform = gl.getUniformLocation(program, 'ambientLightColour');
+         	program.directionalLightUniform = gl.getUniformLocation(program, 'directionalLight');
+         	program.materialSpecularUniform = gl.getUniformLocation(program, 'materialSpecular');
+         	object.materialAmbientUniform = gl.getUniformLocation(program, 'materialAmbient');
+         	object.materialDiffuseUniform = gl.getUniformLocation(program, 'materialDiffuse');
+         	object.shininessUniform = gl.getUniformLocation(program, 'shininess');
+         	
+         	var ambientLightColour = vec3.fromValues(0.2, 0.2, 0.2);
+         	gl.uniform3fv(program.ambientLightColourUniform, ambientLightColour);
+         	
+         	var directionalLight = vec3.fromValues(-0.5, 0.5, 0.5);
+         	gl.uniform3fv(program.directionalLightUniform, directionalLight);
+         	
+         	var materialSpecular = vec3.fromValues(0.5, 0.5, 0.5);
+         	gl.uniform3fv(program.materialSpecularUniform, materialSpecular);
+         	gl.uniform1f(object.shininessUniform, object.material.shininess);
+         	gl.uniform1f(object.materialAmbientUniform, object.material.ambient);
+         	gl.uniform1f(object.materialDiffuseUniform, object.material.diffuse);
+         
+         	object.modelMatrix = modelMatrix;
+         	object.vertexBuffer = vertexBuffer;
+         	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+         	gl.useProgram(null);
+         	
+         	var scene = {
+         		program: program,
+         		object: object,
+         		start: Date.now(),
+         		projectionMatrix: projectionMatrix,
+         		viewMatrix: viewMatrix
+         	};
+         	requestAnimationFrame(function(timestamp) {
+         		render(gl, scene, timestamp, 0);
+         	});
+         
+         	function resizeCanvasToDisplaySize(canvas) {
+         		// Lookup the size the browser is displaying the canvas in CSS pixels.
+         		const displayWidth = canvas.clientWidth;
+         		const displayHeight = canvas.clientHeight;
+         		// Check if the canvas is not the same size.
+         		const needResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
+         		if(needResize) {
+         			// Make the canvas the same size
+         			canvas.width = displayWidth;
+         			canvas.height = displayHeight;
+         		}
+         		return needResize;
+         	}
+         }
+         
+         function loadMeshData(string) {
+         	var lines = string.split("\n");
+         	var positions = [];
+         	var normals = [];
+         	var vertices = [];
+         	for(var i = 0; i < lines.length; i++) {
+         		var parts = lines[i].trimRight().split(' ');
+         		if(parts.length > 0) {
+         			switch(parts[0]) {
+         				case 'v':
+         					positions.push(vec3.fromValues(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])));
+         					break;
+         				case 'vn':
+         					normals.push(vec3.fromValues(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])));
+         					break;
+         				case 'f':
+         					{
+         						var f1 = parts[1].split('/');
+         						var f2 = parts[2].split('/');
+         						var f3 = parts[3].split('/');
+         						Array.prototype.push.apply(vertices, positions[parseInt(f1[0]) - 1]);
+         						Array.prototype.push.apply(vertices, normals[parseInt(f1[2]) - 1]);
+         						Array.prototype.push.apply(vertices, positions[parseInt(f2[0]) - 1]);
+         						Array.prototype.push.apply(vertices, normals[parseInt(f2[2]) - 1]);
+         						Array.prototype.push.apply(vertices, positions[parseInt(f3[0]) - 1]);
+         						Array.prototype.push.apply(vertices, normals[parseInt(f3[2]) - 1]);
+         						break;
+         					}
+         			}
+         		}
+         	}
+         	console.log("Loaded mesh with " + (vertices.length / 6) + " vertices");
+         	return {
+         		primitiveType: 'TRIANGLES',
+         		vertices: new Float32Array(vertices),
+         		vertexCount: vertices.length / 6,
+         		material: {
+         			ambient: 0.2,
+         			diffuse: 0.5,
+         			shininess: 10.0
+         		}
+         	};
+         }
+         
+         function loadMesh(filename) {
+         	$.ajax({
+         		url: filename,
+         		dataType: 'text'
+         	}).done(function(data) {
+         		init(loadMeshData(data));
+         	}).fail(function() {
+         		alert('Faild to retrieve [' + filename + "]");
+         	});
+         }
+         $(document).ready(function() {
+         	loadMesh('monkey.obj')
+         });
+      </script>
+   </head>
+   <body onload="init()">
+      <header>
+         <h1>WebGL - 3D Monkey</h1>
+      </header>
+      <main>
+         <nav class="panel panelobjects">
+            <fieldset class="panelgroup">
+               <legend>3D Shapes</legend>
+               <ul>
+                  <li>
+                     <a href="../index.html">
+                        <div class="panelobjectsobject">Cube</div>
+                     </a>
+                  </li>
+                  <li>
+                     <a href="tetrahedron.html">
+                        <div class="panelobjectsobject">Tetrahedron</div>
+                     </a>
+                  </li>
+                  <li>
+                     <a href="dodecahedron.html">
+                        <div class="panelobjectsobject">Dodecahedron</div>
+                     </a>
+                  </li>
+                  <li>
+                     <a href="icosahedron.html">
+                        <div class="panelobjectsobject">Icosahedron</div>
+                     </a>
+                  </li>
+                  <li>
+                     <a href="special.html">
+                        <div class="panelobjectsobject">Monkey</div>
+                     </a>
+                  </li>
+               </ul>
+            </fieldset>
+            <fieldset class="panelgroup">
+               <legend>Viewing & Projection</legend>
+			    <label>Field of View:</label>
+               <input type="range" min="0.1" max="2.0" value="1.0" step="0.02" class="slider" id="SliderFOV"> <span id="ValueFOV"></span>
+               <br>
+               <label>Plane Near:</label>
+               <input type="range" min="0.1" max="6.0" value="0.0" step="0.02" class="slider" id="SliderPN"> <span id="ValuePN"></span>
+               <br>
+               <label>Plane Far:</label>
+               <input type="range" min="0.01" max="15.0" value="6.0" step="0.02" class="slider" id="SliderPF"> <span id="ValuePF"></span> 
+            </fieldset>
+            <fieldset class="panelgroup">
+               <legend>Point light source</legend>
+               <label for="light-x">X:</label>
+               <input type="range" min="0" max="100" value="50.0" step="0.01" class="slider" name="light-x" id="light-x">
+			   <span id="ValueLX"></span> <span><input class="button btn1" onclick="resetFuncX()" type="button" value="Reset"></span>
+               <br>
+               <label for="light-y">Y:</label>
+               <input type="range" min="0" max="100" value="50.0" step="0.01" class="slider" name="light-y" id="light-y">
+			   <span id="ValueLY"></span> <span><input class="button btn1" onclick="resetFuncY()" type="button" value="Reset"></span>
+               <br>
+               <label for="light-z">Z:</label>
+               <input type="range" min="0" max="100" value="50.0" step="0.01" class="slider" name="light-z" id="light-z">
+			   <span id="ValueLZ"></span> <span><input  class="button btn1" onclick="resetFuncZ()" type="button" value="Reset"></span> 
+            </fieldset>
+           
+         </nav>
+         <div class="panel">
+            <canvas class="canvas" id="gl-canvas" width="10" height="15" style="width: 800px; height: 800px;"></canvas>
+         </div>
+         <div class="panel panelcontrol">
+            <fieldset class="panelgroup">
+               <legend>Translation Axes</legend>
+               <label>Translate X:</label>
+               <input type="range" min="-5" max="5" value="0.0" step="0.00001" class="slider" id="SliderTX"><span id="ValueTX"></span>
+               <br>
+               <label>Translate Y:</label>
+               <input type="range" min="-5" max="5" value="0.0" step="0.00001" class="slider" id="SliderTY"><span id="ValueTY"></span>
+               <br>
+               <label>Translate Z:</label>
+               <input type="range" min="-5" max="5" value="0.0" step="0.00001" class="slider" id="SliderTZ"><span id="ValueTZ"></span> 
+            </fieldset>
+            <fieldset class="panelgroup">
+               <legend>Scaling Axes</legend>
+              <!--  <label>Spin:</label>
+               <input id="ButtonT" type="checkbox" type="checkbox" checked/>
+               <br> -->
+               <label>Scale X:</label>
+               <input type="range" min="0.01" max="10" value="1.0" step="0.001" class="slider" id="SliderScaleX"> <span id="ValueScaleX"></span>
+               <br>
+			     <label>Scale Y:</label>
+               <input type="range" min="0.01" max="10" value="1.0" step="0.001" class="slider" id="SliderScaleY"> <span id="ValueScaleY"></span>
+              <br>
+			 
+            </fieldset>
+            <fieldset class="panelgroup">
+               <legend>Rotation Axes</legend>
+               <label for="rotate-x">Rotate X</label>
+               <input type="range" name="rotate-x" id="rotate-x" min="0" max="10" value="5">
+               <br>
+               <label for="rotate-y">Rotate Y</label>
+               <input type="range" name="rotate-y" id="rotate-y" min="0" max="10" value="5">
+               </label>
+               <br>
+               <label for="rotate-z">Rotate Z</label>
+               <input type="range" name="rotate-z" id="rotate-z" min="0" max="10" value="5">
+               <br>
+			    <label>Speed:</label>
+               <input type="range" min="0.01" max="2.00" value="0.02" step="0.0001" class="slider" id="rotc"> <span id="ValueRot"></span> 
+               <!--<label>Rotation Direction :</label>
+                  <div class="onoffswitch">
+                  	<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="ButtonC" tabindex="0" checked>
+                  	<label class="onoffswitch-label" for="ButtonC"> <span class="onoffswitch-inner"></span> <span class="onoffswitch-switch"></span> </label>
+                  </div>-->
+            </fieldset>
+            <fieldset class="panelgroup">
+               <legend>Camera Controls</legend>
+               <label>eye-X:</label>
+               <input type="range" min="-15.0" max="15.0" value="0.0" step="0.1" class="slider" id="eyeX"><span id="ValueeyeX"></span></input>
+               <br>
+               <label>eye-Y:</label>
+               <input type="range" min="-15.0" max="15.0" value="0.0" step="0.1" class="slider" id="eyeY"><span id="ValueeyeY"></span></input>
+               <br>
+               <label>eye-Z:</label>
+               <input type="range" min="-15.0" max="15.0" value="5.0" step="0.1" class="slider" id="eyeZ"><span id="ValueeyeZ"></span></input>
+               <br> <span>Center-X:</span>
+               <input type="range" min="-15.0" max="15.0" value="0.0" step="0.0001" class="slider" id="ctrX"><span id="ValuectrX"></span></input>
+               <br> <span>Center- Y:</span>
+               <input type="range" min="-15.0" max="15.0" value="0.0" step="0.0001" class="slider" id="ctrY"><span id="ValuectrY"></span></input>
+               <br> <span>Center- Z:</span>
+               <input type="range" min="-15.0" max="15.0" value="0.0" step="0.0001" class="slider" id="ctrZ"><span id="ValuectrZ"></span></input>
+               <br> <span>Up-X:</span>
+               <input type="range" min="-15.0" max="15.0" value="0.0" step="0.0001" class="slider" id="upX"><span id="ValueupX"></span></input>
+               <br> <span>Up- Y:</span>
+               <input type="range" min="-15.0" max="15.0" value="1.0" step="0.0001" class="slider" id="upY"><span id="ValueupY"></span></input>
+               <br> <span>Up- Z:</span>
+               <input type="range" min="-15.0" max="15.0" value="0.0" step="0.0001" class="slider" id="upZ"><span id="ValueupZ"></span></input>
+               <br> <span><input class="button btn2" onclick="resetCam()" type="button" value="Reset Camera"></span> 
+            </fieldset>
+            <script>
+               function resetFuncX() {
+               	document.getElementById("light-x").value = 50.0;
+               }
+               
+               function resetFuncY() {
+               	document.getElementById("light-y").value = 50.0;
+               }
+               
+               function resetFuncZ() {
+               	document.getElementById("light-z").value = 50.0;
+               }
+               
+               function resetCam() {
+               	document.getElementById("eyeX").value = 0.0;
+               	document.getElementById("eyeY").value = 0.0;
+               	document.getElementById("eyeZ").value = 5.0;
+               	document.getElementById("ctrX").value = 0.0;
+               	document.getElementById("ctrY").value = 0.0;
+               	document.getElementById("ctrZ").value = 0.0;
+               	document.getElementById("upX").value = 0.0;
+               	document.getElementById("upY").value = 1.0;
+               	document.getElementById("upZ").value = 0.0;
+               }
+            </script>
+         </div>
+      </main>
+   </body>
+</html>

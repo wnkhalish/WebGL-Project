@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>WebGL-3D</title>
+	<link rel="stylesheet" href="style.css">
+	<link href="https://fonts.googleapis.com/css?family=Pangolin" rel="stylesheet">
+	<script id="vertex-shader" type="x-shader/x-vertex">
+		attribute vec4 vPosition;
+		         attribute vec4 vColor;
+		         attribute vec3 vNormal;
+				 attribute  vec2 vTexCoord;
+		         
+		         uniform mat4 modelViewMatrix;
+		         varying vec4 fColor;
+		         varying vec3 fNormal;
+				 varying vec2 fTexCoord;
+		         
+		         uniform mat4 projectionMatrix;
+		         
+		         uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+		         uniform vec4 lightPosition;
+		         uniform float shininess;
+		         
+		         uniform bool shading;
+				 
+		         
+		         void main()
+		         {
+		             fNormal = mat3(modelViewMatrix) * vNormal;
+		         
+		             vec3 pos = -(modelViewMatrix * vPosition).xyz;
+		             vec3 light = lightPosition.xyz;
+		             vec3 L = normalize( light - pos );
+					 fTexCoord = vTexCoord;
+		         
+		             if(shading){
+		            float flatShd = max(dot(fNormal, light), 0.0);
+		         
+		               float Ka = 1.0;
+		               float Kd = 1.0;
+		               float Ks = 1.0;
+		               fColor = Ka * ambientProduct + Kd * flatShd * diffuseProduct + Ks * flatShd * specularProduct;
+		             }
+		             else{
+						vec3 E = normalize( -pos );
+		               vec3 H = normalize( L + E );
+		         
+		               float gouShd = max(dot(fNormal, L), 0.0);
+		         
+		               float specular = 0.0;
+		         
+		               if(gouShd > 0.0) {
+		                 vec3 R = reflect(-L, fNormal);    
+		                 vec3 V = normalize(-pos); 
+		         
+		           
+		                 float specAngle = max(dot(R, V), 0.0);
+		                 specular = pow(specAngle, shininess);
+		               }
+		               float Ka = 1.0;
+		               float Kd = 1.0;
+		               float Ks = 1.0;
+		               fColor = Ka * ambientProduct + Kd * gouShd * diffuseProduct + Ks * specular * specularProduct;
+		         
+		              
+		             }
+
+		             gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+		         }
+	</script>
+	<script id="fragment-shader" type="x-shader/x-fragment">
+		precision mediump float;
+		         varying vec4 fColor;
+		         varying  vec2 fTexCoord;
+				 uniform sampler2D Tex0;
+				 uniform sampler2D Tex1;
+				 uniform bool texture;
+		         void main()
+		         {
+				 	if(texture)
+					 {
+						gl_FragColor = fColor*(texture2D(Tex0, fTexCoord)*texture2D(Tex1, fTexCoord));
+					 }
+					 else
+					 {
+						gl_FragColor = fColor;
+					 }
+					
+		           //gl_FragColor = fColor;
+		         }
+	</script>
+	<script type="text/javascript" src="Common/webgl-utils.js"></script>
+	<script type="text/javascript" src="Object/cube/initShaders.js"></script>
+	<script type="text/javascript" src="Common/MV.js"></script>
+	<script type="text/javascript" src="Object/cube/project.js"></script>
+
+	<body onload="init()">
+		<header>
+			<h1>WebGL - 3D Cube</h1>
+		</header>
+		<main>
+			<nav class="panel panelobjects">
+					<fieldset class="panelgroup">
+						<legend>3D Shapes</legend>
+					<ul>
+					<li>
+						<a href="index.html"><div class="panelobjectsobject">Cube</div>
+						</a>
+					</li>
+					<li>
+						<a href="Object/tetrahedron.html"><div class="panelobjectsobject">Tetrahedron</div>
+						</a>
+					</li>
+					<li>
+						<a href="Object/dodecahedron.html"><div class="panelobjectsobject">Dodecahedron</div>
+						</a>
+					</li>
+					<li>
+						<a href="Object/icosahedron.html"><div class="panelobjectsobject">Icosahedron</div>
+						</a>
+					</li>
+					<li>
+						<a href="Object/special.html"><div class="panelobjectsobject">Monkey</div>
+						</a>
+					</li>
+				</ul>
+				</fieldset>
+				<fieldset class="panelgroup">
+					<legend>Viewing & Projection</legend>
+					<label>Orthographic</label>
+					<input id="ButtonP" type="checkbox" checked/>
+					<br>
+					<label>Plane Near:</label>
+					<input type="range" min="0.01" max="3.0" value="0.0" step="0.02" class="slider" id="SliderPN"> <span id="ValuePN"></span>
+					<br>
+					<label>Plane Far:</label>
+					<input type="range" min="0.02" max="3.0" value="3.0" step="0.02" class="slider" id="SliderPF"> <span id="ValuePF"></span>
+				</fieldset>
+				<fieldset class="panelgroup">
+					<legend>Point light source</legend>
+					<label>X:</label>
+					<input type="range" min="-10" max="10" value="0.0" step="0.01" class="slider" id="LightX"><span id="ValueLX"></span>  <span><input class="button btn1" onclick="resetFuncX()" type="button" value="Reset"></span>
+					<br>
+					<label>Y:</label>
+					<input type="range" min="-10" max="10" value="0.0" step="0.01" class="slider" id="LightY"><span id="ValueLY"></span>
+					<span><input class="button btn1" onclick="resetFuncY()" type="button" value="Reset"></span>
+					<br>
+					<label>Z:</label>
+					<input type="range" min="-10" max="10" value="1.0" step="0.01" class="slider" id="LightZ"><span id="ValueLZ"></span>
+					<span><input  class="button btn1" onclick="resetFuncZ()" type="button" value="Reset"></span>
+					
+				</fieldset>
+					<fieldset class="panelgroup">
+						<legend>Texture Mapping & Shading</legend>
+						<label>Shading :</label>
+						<div class="onoffswitch2">
+							<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox2" id="ButtonS" tabindex="0" checked>
+							<label class="onoffswitch-label2" for="ButtonS"> <span class="onoffswitch-inner2"></span>
+								<span class="onoffswitch-switch2"></span>
+							</label>
+						</div>
+						<label>Texture :</label>
+						<div class="onoffswitch3">
+							<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox3" id="ButtonTex" tabindex="0" checked>
+							<label class="onoffswitch-label3" for="ButtonTex"> <span class="onoffswitch-inner3"></span>
+								<span class="onoffswitch-switch3"></span>
+							</label>
+						</div>
+					</fieldset>
+				</div>
+			</nav>
+			<div class="panel">
+				<canvas class="canvas" id="gl-canvas" width="10" height="15" style="width: 800px; height: 700px;"></canvas>
+			</div>
+			<div class="panel panelcontrol">
+				<fieldset class="panelgroup">
+					<legend>Translation Axes</legend>
+					<label>Translate X:</label>
+					<input type="range" min="-2" max="2" value="0.0" step="0.01" class="slider" id="SliderTX"><span id="ValueTX"></span>
+					<br>
+					<label>Translate Y:</label>
+					<input type="range" min="-2" max="2" value="0.0" step="0.01" class="slider" id="SliderTY"><span id="ValueTY"></span>
+					<br>
+					<label>Translate Z:</label>
+					<input type="range" min="-2" max="2" value="0.0" step="0.01" class="slider" id="SliderTZ"><span id="ValueTZ"></span>
+				</fieldset>
+					<fieldset class="panelgroup">
+					<legend>Animation</legend>
+					<label>Spin:</label>
+					<input id="ButtonT" type="checkbox" type="checkbox" checked/>
+					<br>
+					<label>Zoom:</label>
+					<input type="range" min="0.01" max="1" value="0.5" step="0.01" class="slider" id="SliderScale"> <span id="ValueScale"></span>
+					<br>
+					<label>Speed:</label>
+					<input type="range" min="0.1" max="0.8" value="0.2" step="0.0001" class="slider" id="rotc"> <span id="ValueRot"></span>
+					 
+				</fieldset>
+				<fieldset class="panelgroup">
+					<legend>Rotation Axes</legend>
+					<label for="rotX">Rotate X</label>
+					<input type="radio" id="ButtonX" name="rot" checked/>
+					<br>
+					<label for="rotY">Rotate Y</label>
+					<input type="radio" id="ButtonY" name="rot">
+					<br>
+					<label for="rotZ">Rotate Z</label>
+					<input type="radio" id="ButtonZ" name="rot">
+					<br>
+					<label>Rotation Direction :</label>
+					<div class="onoffswitch">
+						<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="ButtonC" tabindex="0" checked>
+						<label class="onoffswitch-label" for="ButtonC"> <span class="onoffswitch-inner"></span>
+							<span class="onoffswitch-switch"></span>
+						</label>
+					</div>
+				</fieldset>
+				
+				
+				<fieldset class="panelgroup">
+					<legend>Camera Controls</legend>
+					<label>eye-X:</label>
+					<input type="range" min="0.0" max="2.0" value="0.0" step="0.0001" class="slider" id="eyeX"><span id="ValueeyeX"></span></input>
+					<br>
+					<label>eye-Y:</label>
+					<input type="range" min="0.0" max="2.0" value="0.0" step="0.0001" class="slider" id="eyeY"><span id="ValueeyeY"></span></input>
+					<br>
+					<label>eye-Z:</label>
+					<input type="range" min="-2" max="2.0" value="1.0" step="0.0001" class="slider" id="eyeZ"><span id="ValueeyeZ"></span></input>
+					<br>
+					<span>Center-X:</span>
+					<input type="range" min="-2" max="2.0" value="0.0" step="0.0001" class="slider" id="ctrX"><span id="ValuectrX"></span></input>
+					<br>
+					<span>Center- Y:</span>
+					<input type="range" min="-2" max="2.0" value="0.0" step="0.0001" class="slider" id="ctrY"><span id="ValuectrY"></span></input>
+					<br>
+					<span>Center- Z:</span>
+					<input type="range" min="-2" max="2.0" value="0.0" step="0.0001" class="slider" id="ctrZ"><span id="ValuectrZ"></span></input>
+					<br>
+					<span>Up-X:</span>
+					<input type="range" min="-2" max="2.0" value="0.0" step="0.0001" class="slider" id="upX"><span id="ValueupX"></span></input>
+					<br>
+					<span>Up- Y:</span>
+					<input type="range" min="0.1" max="2.0" value="1.0" step="0.0001" class="slider" id="upY"><span id="ValueupY"></span></input>
+					<br>
+					<span>Up- Z:</span>
+					<input type="range" min="-2" max="2.0" value="0.0" step="0.0001" class="slider" id="upZ"><span id="ValueupZ"></span></input>
+					<br>
+					<span><input class="button btn2" onclick="resetCam()" type="button" value="Reset Camera"></span>
+				</fieldset>
+				<script>
+					function resetFuncX(){
+					    document.getElementById("LightX").value=0.0;
+					  }
+					  function resetFuncY(){
+					    document.getElementById("LightY").value=0.0;
+					  }
+					    function resetFuncZ(){
+					    document.getElementById("LightZ").value=1.0;
+					  }
+					    function resetCam(){
+					    document.getElementById("eyeX").value=0.0;
+						document.getElementById("eyeY").value=0.0;
+						document.getElementById("eyeZ").value=1.0;
+						document.getElementById("ctrX").value=0.0;
+						document.getElementById("ctrY").value=0.0;
+						document.getElementById("ctrZ").value=0.0;
+						document.getElementById("upX").value=0.0;
+						document.getElementById("upY").value=1.0;
+						document.getElementById("upZ").value=0.0;
+					  }
+				</script>
+			
+			</div>
+		</main>
+	</body>
+
+</html>
+
+</html>
